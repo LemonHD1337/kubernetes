@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: echo
+spec:
+  restartPolicy: Never
+  containers:
+    - name: echo
+      image: busybox:1.28
+      command: ['sh', '-c', 'echo "Hello kubernetes!" && sleep 5']
