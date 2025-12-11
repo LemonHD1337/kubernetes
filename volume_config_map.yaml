@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+spec:
+  type: ClusterIP
+  selector:
+    app: app-pod
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: http
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  LOGGING_LEVEL: "INFO"
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+stringData:
+  USER_PASSWORD: admin123
+  USER: admin
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+  labels:
+    name: app-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: app-pod
+  template:
+    metadata:
+      labels:
+        app: app-pod
+    spec:
+      volumes:
+        - name: app-config
+          configMap:
+            name: app-config
+        - name: app-config-item
+          configMap:
+            name: app-config
+            items:
+              - key: LOGGING_LEVEL
+                path: logging_level.conf
+      containers:
+        - name: app
+          image: app:1.0.0
+          volumeMounts:
+            - mountPath: /etc/app-config
+              name: app-config
+            - mountPath: /etc/app-config-item
+              name: app-config-item
+            - mountPath: /etc/app-config-sub-path
+              subPath: LOGGING_LEVEL
+          ports:
+            - containerPort: 5000
+              name: http
+          env:
+            - name: LOGGING_LEVEL_APP
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: LOGGING_LEVEL
+            - name: USER_PASSWORD_APP
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: USER_PASSWORD
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secrets
